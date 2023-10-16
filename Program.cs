@@ -21,7 +21,7 @@ namespace DidimboteDataAccess
                 // CreateManyCategory(connection);
                 // DeleteManyQuery(connection);
                 // UpdateManyQuery(connection);
-                ListCategory(connection);
+                // ListCategory(connection);
             }
         }
         static void ListCategory(SqlConnection connection)
