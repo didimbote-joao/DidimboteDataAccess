@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 using System.Formats.Asn1;
 using System.Reflection;
 using Dapper;
@@ -21,6 +22,7 @@ namespace DidimboteDataAccess
                 // CreateManyCategory(connection);
                 // DeleteManyQuery(connection);
                 // UpdateManyQuery(connection);
+                ExecuteProcedure(connection);
                 // ListCategory(connection);
             }
         }
@@ -176,6 +178,16 @@ namespace DidimboteDataAccess
                 }
             });
             Console.WriteLine($"{rows} linhas de registros actualizadas");
+        }
+        static void ExecuteProcedure(SqlConnection connection)
+        {
+            var procedure = "[spDeleteStudent]";
+
+            var parametroProcedure = new { StudentId = "5831a86b-c7e7-49d4-b28b-8af961efea1e" };
+
+            connection.Execute(procedure,
+                parametroProcedure,
+                commandType: CommandType.StoredProcedure);
         }
     }
 }
