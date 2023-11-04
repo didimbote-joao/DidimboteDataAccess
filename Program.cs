@@ -22,25 +22,42 @@ namespace DidimboteDataAccess
                 // CreateManyCategory(connection);
                 // DeleteManyQuery(connection);
                 // UpdateManyQuery(connection);
-                ExecuteProcedure(connection);
+                // ExecuteProcedure(connection);
                 // ListCategory(connection);
+                // ExecuteReadProcedure(connection);
+                // GetCategory(connection);
+                // ExecuteEscalar(connection);
+                ReadView(connection);
             }
         }
         static void ListCategory(SqlConnection connection)
         {
             //Criando uma lista a partir da query e salvando na variavel CATEGORIES
-            var categories = connection.Query<Category>("SELECT [Id], [Title] FROM [Category]");
-            //Percorrendo os itens da lista
+            var categories = connection.Query<Category>("SELECT [Id], [Title] FROM [Category]"); //Lista do tipo Tipada como CATEGORY
 
+            //Percorrendo os itens da lista
             foreach (var item in categories)
             {
                 Console.WriteLine($"{item.Id} - {item.Title}");
             }
         }
+
+        static void GetCategory(SqlConnection connection)
+        {
+            var category = connection
+                .QueryFirstOrDefault<Category>(
+                    "SELECT TOP 1 [Id], [Title] FROM [Category] WHERE [Id]=@id",
+                    new
+                    {
+                        id = "af3407aa-11ae-4621-a2ef-2028b85507c4"
+                    });
+            Console.WriteLine($"{category?.Id} - {category?.Title}");
+
+        }
         static void CreateCategory(SqlConnection connection)
         {
 
-            //Atribuindo valores as propriedades para depois inserir na Base de Dados
+            // Atribuindo valores as propriedades para depois inserir na Base de Dados
             var category = new Category();
             category.Id = Guid.NewGuid();
             category.Title = "Amazon AWS";
@@ -50,7 +67,7 @@ namespace DidimboteDataAccess
             category.Description = "Categoria destinada a serviços do AWS";
             category.Featured = false;
 
-            //PQuery para criar categoria
+            // Query para criar categoria
             var insertSql = @"INSERT INTO 
                         [Category] 
                     VALUES (
@@ -62,7 +79,7 @@ namespace DidimboteDataAccess
                         @Description,
                         @Featured)";
 
-            //Executa o insert com os parametros e guarda o numero de linhas inserida na variavel ROWS
+            // Executa o insert com os parametros e guarda o numero de linhas inserida na variavel ROWS
             var rows = connection.Execute(insertSql, new
             {
                 category.Id,
@@ -181,13 +198,89 @@ namespace DidimboteDataAccess
         }
         static void ExecuteProcedure(SqlConnection connection)
         {
+            // Informa a StoreProcedure a ser executada
             var procedure = "[spDeleteStudent]";
 
+            // Informa o parametro da Procedure
             var parametroProcedure = new { StudentId = "5831a86b-c7e7-49d4-b28b-8af961efea1e" };
 
-            connection.Execute(procedure,
+            // Executa a Procedure e armazena o numero de linhas afetadas na variavel 
+            var affetedRows = connection.Execute(procedure,
                 parametroProcedure,
                 commandType: CommandType.StoredProcedure);
+
+            // Imprime as linhas afectadas
+            Console.WriteLine($"{affetedRows} linhas afetadas");
+        }
+
+        static void ExecuteReadProcedure(SqlConnection connection)
+        {
+            // Informa a StoreProcedure a ser executada
+            var procedure = "[spGetCoursesByCategory]";
+
+            // Informa o parametro da Procedure
+            var parametroProcedure = new { CategoryId = "09ce0b7b-cfca-497b-92c0-3290ad9d5142" };
+
+            // Executa a Procedure de leitura e armazena os dados na variavel 
+            var courses = connection.Query(procedure, //Lista do tipo DINAMICA
+                parametroProcedure,
+                commandType: CommandType.StoredProcedure);
+
+            // Percorre a lista dinamica de cursos Imprime os cursos na tela
+            foreach (var item in courses)
+            {
+                Console.WriteLine($"{item.Id}");
+            }
+        }
+
+        static void ExecuteEscalar(SqlConnection connection)
+        {
+            // Atribuindo valores as propriedades para depois inserir na Base de Dados
+            var category = new Category();
+            category.Title = "Amazon AWS";
+            category.Url = "amazon";
+            category.Summary = "AWS Cloud";
+            category.Order = 8;
+            category.Description = "Categoria destinada a serviços do AWS";
+            category.Featured = false;
+
+            // Query para criar categoria
+            var insertSql = @"INSERT INTO 
+                        [Category] 
+                        OUTPUT inserted.[Id]
+                    VALUES (
+                        NEWID(),
+                        @Title,
+                        @Url,
+                        @Summary,
+                        @Order,
+                        @Description,
+                        @Featured) ";
+
+            // Executa o insert com os parametros e guarda o numero de linhas inserida na variavel ROWS
+            var id = connection.ExecuteScalar<Guid>(insertSql, new
+            {
+                category.Id,
+                category.Title,
+                category.Url,
+                category.Summary,
+                category.Order,
+                category.Description,
+                category.Featured
+            });
+            Console.WriteLine($"A categoria inserida tem o id: {id}");
+        }
+
+        static void ReadView(SqlConnection connection)
+        {
+            var sql = "SELECT * FROM [VwCourses]";
+            var Courses = connection.Query(sql); //Lista do tipo dinamica
+
+            //Percorrendo os itens da lista
+            foreach (var item in Courses)
+            {
+                Console.WriteLine($"{item.Id} - {item.Title}");
+            }
         }
     }
 }
