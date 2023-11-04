@@ -5,6 +5,7 @@ using System.Reflection;
 using Dapper;
 using DidimboteDataAccess.Models;
 using Microsoft.Data.SqlClient;
+using System.Collections.Generic;
 
 namespace DidimboteDataAccess
 {
@@ -27,7 +28,8 @@ namespace DidimboteDataAccess
                 // ExecuteReadProcedure(connection);
                 // GetCategory(connection);
                 // ExecuteEscalar(connection);
-                ReadView(connection);
+                // ReadView(connection);
+                OneToOne(connection);
             }
         }
         static void ListCategory(SqlConnection connection)
@@ -280,6 +282,41 @@ namespace DidimboteDataAccess
             foreach (var item in Courses)
             {
                 Console.WriteLine($"{item.Id} - {item.Title}");
+            }
+        }
+
+        static void OneToOne(SqlConnection connection)
+        {
+            var sql = @"
+                SELECT 
+                    * 
+                FROM 
+                    [CareerItem]
+                INNER JOIN
+                    [Course]
+                ON 
+                    [CareerItem].[CourseId] = [Course].[Id]";
+
+
+            var items = connection.Query<CareerItem, Course, CareerItem>(
+                sql,
+                (careerItem, course) =>
+                {
+                    careerItem.Course = course;
+                    return careerItem;
+                }, splitOn: "Id");
+
+            // var items = connection.Query<CareerItem, Course, CareerItem>(
+            //     sql,
+            //     (careerItem, course) =>
+            //     {
+            //         careerItem.Course = course;
+            //         return careerItem;
+            //     }, splitOn: "Id");
+
+            foreach (var item in items)
+            {
+                Console.WriteLine(item.Title);
             }
         }
     }
