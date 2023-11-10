@@ -307,14 +307,6 @@ namespace DidimboteDataAccess
                     return careerItem;
                 }, splitOn: "Id");
 
-            // var items = connection.Query<CareerItem, Course, CareerItem>(
-            //     sql,
-            //     (careerItem, course) =>
-            //     {
-            //         careerItem.Course = course;
-            //         return careerItem;
-            //     }, splitOn: "Id");
-
             foreach (var item in items)
             {
                 Console.WriteLine(item.Title);
@@ -336,18 +328,38 @@ namespace DidimboteDataAccess
                 ORDER BY
                     [Career].[Title]";
 
+            // Criando uma lista de carreira
+            var careers = new List<Career>();
 
-            var careers = connection.Query<Career, CareerItem, Career>(
+            // Carrega os dados do inner join e atribui nos parametros careere item, e posteriormente atribuiu a variavel careers
+            var items = connection.Query<Career, CareerItem, Career>(
                 sql,
                 (career, item) =>
                 {
-                    //careerItem.Course = course;
+                    // Verifica se o item ja existe na carreira
+                    var car = careers.Where(x => x.Id == career.Id).FirstOrDefault();
+
+                    // Se nao encontrar nada esse item vai ser nulo
+                    if (car == null)
+                    {
+                        //Adiciona item a lista carreira
+                        car = career;// Atribui o valor da carreira a variavel car
+                        car.Items.Add(item); // Adiciona um "item" a variavel car que ja tem uma carreira
+                        careers.Add(car);// A carreira e o seu item sao adicionado a lista de carreiras
+                    }
+                    // Caso a carreira ja esteja na lista
+                    else
+                    {
+                        car.Items.Add(item); // Adiciona um "item" a variavel car que ja tem uma carreira
+                    }
+
                     return career;
                 }, splitOn: "CareerId");
-
+            // Percorre as carreiras
             foreach (var career in careers)
             {
                 Console.WriteLine($"{career.Title}");
+                // Percorre os itens da carreira
                 foreach (var item in career.Items)
                 {
                     Console.WriteLine($"{item.Title}");
