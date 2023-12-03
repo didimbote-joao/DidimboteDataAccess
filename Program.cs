@@ -30,7 +30,12 @@ namespace DidimboteDataAccess
                 // ExecuteEscalar(connection);
                 // ReadView(connection);
                 // OneToOne(connection);
-                OneToMany(connection);
+                // OneToMany(connection);
+                // QueryMultiple(connection);
+                // SelectIn(connection);
+                // Like(connection);
+                //Like_opction2(connection, "asp");
+                Transicion(connection);
             }
         }
         static void ListCategory(SqlConnection connection)
@@ -188,7 +193,9 @@ namespace DidimboteDataAccess
         {
             var UpdateQuery = "UPDATE [Category] SET [Title]=@title WHERE [Id]=@id";
 
-            var rows = connection.Execute(UpdateQuery, new[]{
+            var rows = connection.Execute(UpdateQuery, new[] // E' um array de parametro, ou seja, 
+                                                             // executa a query varias vezes, mudando os parametros
+            {
                 new{
                     id = new Guid("5c7c005c-204e-4f19-837a-52fa65446760"),
                     title = "Peter Fernandes"
@@ -285,7 +292,6 @@ namespace DidimboteDataAccess
                 Console.WriteLine($"{item.Id} - {item.Title}");
             }
         }
-
         static void OneToOne(SqlConnection connection)
         {
             var sql = @"
@@ -312,7 +318,6 @@ namespace DidimboteDataAccess
                 Console.WriteLine(item.Title);
             }
         }
-
         static void OneToMany(SqlConnection connection)
         {
             var sql = @"
@@ -355,15 +360,157 @@ namespace DidimboteDataAccess
 
                     return career;
                 }, splitOn: "CareerId");
+
             // Percorre as carreiras
             foreach (var career in careers)
             {
                 Console.WriteLine($"{career.Title}");
+
                 // Percorre os itens da carreira
                 foreach (var item in career.Items)
                 {
                     Console.WriteLine($"{item.Title}");
                 }
+            }
+        }
+        static void QueryMultiple(SqlConnection connection)
+        {
+            // Funcao para fazer multiplos SELECTs
+
+            // Declarando a variavel para receber mais de um SELECT
+            var sqlquery = "SELECT * FROM [Category]; SELECT * FROM [Course]";
+
+            //Executando a query multipla ou multiplos SELECTs
+            using (var multi = connection.QueryMultiple(sqlquery))
+            {
+                // Pode ser feito um OneToMany e/ou OneToOne dentro do QueryMultiple
+
+                // Armazenar os valores nas novas variaveis
+                var categories = multi.Read<Category>(); // Lista do tipo tipada
+                var courses = multi.Read<Course>(); // Lista do tipo tipada
+
+                // Percorre todos titulos da categoria
+                foreach (var item in categories)
+                {
+                    Console.WriteLine(item.Title);
+                }
+
+                // Percorre todos titulos do curso
+                foreach (var item in courses)
+                {
+                    Console.WriteLine($"{item.Title}");
+                }
+            }
+        }
+        static void SelectIn(SqlConnection connection)
+        {
+            // Declarando a viriavel que carrega o comando sql
+            var sqlquery = "SELECT * FROM [Career] WHERE [Id] IN @Id";
+
+            // Executa a query e armazena os dados na variavel item
+            var items = connection.Query<Career>(sqlquery, new // Executa a mesma query, mudando os parametros,
+                                                               // Ou seja, e' um parametro com um array dentro
+            {
+                // Cria um array de parametros
+                Id = new[]{
+                    "4327ac7e-963b-4893-9f31-9a3b28a4e72b",
+                    "e6730d1c-6870-4df3-ae68-438624e04c72"
+                }
+            });
+
+            foreach (var item in items)
+            {
+                Console.WriteLine($"{item.Title}");
+            }
+        }
+        static void Like(SqlConnection connection)
+        {
+            // Declarando o termo de busca
+            var term = "node";
+
+            // Declarando a viriavel que carrega o comando sql
+            var sqlquery = "SELECT * FROM [Course] WHERE [Title] LIKE @exp";
+
+            // Executa a query e armazena os dados na variavel item
+            var items = connection.Query<Career>(sqlquery, new // Executa a mesma query, mudando os parametros,
+                                                               // Ou seja, e' um parametro com um array dentro
+            {
+                // Declarando o TERM como parametro SQL de busca
+                exp = $"%{term}%"
+            });
+
+            foreach (var item in items)
+            {
+                Console.WriteLine($"{item.Title}");
+            }
+        }
+
+        static void Like_opction2(SqlConnection connection, string term)// Like com parametro SQL termo
+        {
+            // Declarando a viriavel que carrega o comando sql
+            var sqlquery = "SELECT * FROM [Course] WHERE [Title] LIKE @exp";
+
+            // Executa a query e armazena os dados na variavel item
+            var items = connection.Query<Career>(sqlquery, new // Executa a mesma query, mudando os parametros,
+                                                               // Ou seja, e' um parametro com um array dentro
+            {
+                // Declarando o TERM como parametro SQL de busca
+                exp = $"%{term}%"
+            });
+
+            foreach (var item in items)
+            {
+                Console.WriteLine($"{item.Title}");
+            }
+        }
+
+        static void Transicion(SqlConnection connection)
+        {
+            // Atribuindo valores as propriedades para depois inserir na Base de Dados
+            var category = new Category();
+            category.Id = Guid.NewGuid();
+            category.Title = "Minha nova conta";
+            category.Url = "amazon";
+            category.Summary = "AWS Cloud";
+            category.Order = 8;
+            category.Description = "Categoria destinada a serviços do AWS";
+            category.Featured = false;
+
+            // Query para criar categoria
+            var insertSql = @"INSERT INTO 
+                        [Category] 
+                    VALUES (
+                        @Id,
+                        @Title,
+                        @Url,
+                        @Summary,
+                        @Order,
+                        @Description,
+                        @Featured)";
+
+            // Abrir a conexao
+            connection.Open();
+
+            // Inicia a TRANSITION
+            using (var transaction = connection.BeginTransaction())
+            {
+                // Executa o insert com os parametros e guarda o numero de linhas inserida na variavel ROWS
+                var rows = connection.Execute(insertSql, new
+                {
+                    category.Id,
+                    category.Title,
+                    category.Url,
+                    category.Summary,
+                    category.Order,
+                    category.Description,
+                    category.Featured
+                }, transaction);
+
+                //transaction.Commit(); // Executa o insert
+
+                transaction.Rollback(); // Desfaz tudo o que ele fez
+
+                Console.WriteLine($"{rows} linhas inseridas");
             }
         }
     }
